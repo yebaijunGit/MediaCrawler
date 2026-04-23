@@ -179,3 +179,7 @@ agent_zone
 debug_tools
 
 database/*.db
+
+# Personal settings and large binaries
+.playwright-browsers/
+user_settings.json

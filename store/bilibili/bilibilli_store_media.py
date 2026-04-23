@@ -48,22 +48,50 @@ class BilibiliVideo(AbstractStoreVideo):
         Returns:
 
         """
-        await self.save_video(video_content_item.get("aid"), video_content_item.get("video_content"), video_content_item.get("extension_file_name"))
+        aid = video_content_item.get("aid")
+        title = video_content_item.get("title", str(aid))
+        user_nickname = video_content_item.get("user_nickname", "Unknown")
+        collection_name = video_content_item.get("collection_name", "")  # New: video set/collection title
+        
+        # Sanitize for safe filenames and folder names
+        import re
+        title = re.sub(r'[\\/:*?"<>|]', '_', title)
+        user_nickname = re.sub(r'[\\/:*?"<>|]', '_', user_nickname)
+        if collection_name:
+            collection_name = re.sub(r'[\\/:*?"<>|]', '_', collection_name)
+        
+        await self.save_video(
+            aid, 
+            video_content_item.get("video_content"), 
+            video_content_item.get("extension_file_name"),
+            title=title,
+            user_nickname=user_nickname,
+            collection_name=collection_name
+        )
 
-    def make_save_file_name(self, aid: str, extension_file_name: str) -> str:
+    def make_save_file_name(self, aid: str, extension_file_name: str, title: str = "", user_nickname: str = "", collection_name: str = "") -> str:
         """
         make save file name by store type
 
         Args:
             aid: aid
             extension_file_name: video filename with extension
+            title: sanitized video title
+            user_nickname: sanitized creator nickname
+            collection_name: sanitized collection/video set name
 
         Returns:
 
         """
-        return f"{self.video_store_path}/{aid}/{extension_file_name}"
+        # New structure: videos / Nickname / [CollectionTitle] / Title.mp4
+        folder_path = f"{self.video_store_path}/{user_nickname}" if user_nickname else self.video_store_path
+        if collection_name:
+            folder_path = f"{folder_path}/{collection_name}"
+        
+        file_name = f"{title}.mp4" if title else extension_file_name
+        return f"{folder_path}/{file_name}"
 
-    async def save_video(self, aid: int, video_content: str, extension_file_name="mp4"):
+    async def save_video(self, aid: int, video_content: str, extension_file_name="mp4", title: str = "", user_nickname: str = "", collection_name: str = "") -> None:
         """
         save video to local
 
@@ -71,12 +99,21 @@ class BilibiliVideo(AbstractStoreVideo):
             aid: aid
             video_content: video content
             extension_file_name: video filename with extension
+            title: video title
+            user_nickname: creator nickname
+            collection_name: collection/video set name
 
         Returns:
 
         """
-        pathlib.Path(self.video_store_path + "/" + str(aid)).mkdir(parents=True, exist_ok=True)
-        save_file_name = self.make_save_file_name(str(aid), extension_file_name)
+        # Create user sub-folder and collection sub-folder if exists
+        folder_path = self.video_store_path + "/" + user_nickname if user_nickname else self.video_store_path
+        if collection_name:
+            folder_path = folder_path + "/" + collection_name
+            
+        pathlib.Path(folder_path).mkdir(parents=True, exist_ok=True)
+        
+        save_file_name = self.make_save_file_name(str(aid), extension_file_name, title=title, user_nickname=user_nickname, collection_name=collection_name)
         async with aiofiles.open(save_file_name, 'wb') as f:
             await f.write(video_content)
             utils.logger.info(f"[BilibiliVideoImplement.save_video] save save_video {save_file_name} success ...")

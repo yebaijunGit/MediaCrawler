@@ -133,18 +133,24 @@ async def update_bilibili_video_comment(video_id: str, comment_item: Dict):
     await BiliStoreFactory.create_store().store_comment(comment_item=save_comment_item)
 
 
-async def store_video(aid, video_content, extension_file_name):
+async def store_video(aid, video_content, extension_file_name, title: str = "", user_nickname: str = "", collection_name: str = ""):
     """
     video video storage implementation
     Args:
         aid:
         video_content:
         extension_file_name:
+        title: video title
+        user_nickname: creator nickname
+        collection_name: collection/video set name
     """
     await BilibiliVideo().store_video({
         "aid": aid,
         "video_content": video_content,
         "extension_file_name": extension_file_name,
+        "title": title,
+        "user_nickname": user_nickname,
+        "collection_name": collection_name,
     })
 
 

@@ -515,12 +515,11 @@ class BilibiliCrawler(AbstractCrawler):
                     "height": 1080
                 },
                 user_agent=user_agent,
-                channel="chrome",  # Use system's stable Chrome version
             )
             return browser_context
         else:
             # type: ignore
-            browser = await chromium.launch(headless=headless, proxy=playwright_proxy, channel="chrome")
+            browser = await chromium.launch(headless=headless, proxy=playwright_proxy)
             browser_context = await browser.new_context(viewport={"width": 1920, "height": 1080}, user_agent=user_agent)
             return browser_context
 
@@ -604,8 +603,22 @@ class BilibiliCrawler(AbstractCrawler):
         utils.logger.info(f"[BilibiliCrawler.get_bilibili_video] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after fetching video {aid}")
         if content is None:
             return
-        extension_file_name = f"video.mp4"
-        await bilibili_store.store_video(aid, content, extension_file_name)
+        title = video_item_view.get("title", "")
+        # Sanitize title for filename
+        import re
+        sanitized_title = re.sub(r'[\\/:*?"<>|]', '_', title)
+        extension_file_name = f"{sanitized_title}.mp4"
+        
+        video_user_info: Dict = video_item_view.get("owner")
+        nickname = video_user_info.get("name", "Unknown")
+        
+        # New: detect collection/video set
+        collection_name = ""
+        ugc_season = video_item_view.get("ugc_season")
+        if ugc_season:
+            collection_name = ugc_season.get("title", "")
+        
+        await bilibili_store.store_video(aid, content, extension_file_name, title=sanitized_title, user_nickname=nickname, collection_name=collection_name)
 
     async def get_all_creator_details(self, creator_url_list: List[str]):
         """

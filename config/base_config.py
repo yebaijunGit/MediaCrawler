@@ -18,7 +18,7 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 # Basic configuration
-PLATFORM = "xhs"  # Platform, xhs | dy | ks | bili | wb | tieba | zhihu
+PLATFORM = "bili"  # Platform, xhs | dy | ks | bili | wb | tieba | zhihu
 
 # 是否使用海外版小红书 (rednote.com)
 # 开启后 API 走 webapi.rednote.com，cookie 域使用 .rednote.com
@@ -27,9 +27,7 @@ XHS_INTERNATIONAL = False
 KEYWORDS = "编程副业,编程兼职"  # Keyword search configuration, separated by English commas
 LOGIN_TYPE = "qrcode"  # qrcode or phone or cookie
 COOKIES = ""
-CRAWLER_TYPE = (
-    "search"  # Crawling type, search (keyword search) | detail (post details) | creator (creator homepage data)
-)
+CRAWLER_TYPE = "creator"  # Crawling type, search (keyword search) | detail (post details) | creator (creator homepage data)
 # Whether to enable IP proxy
 ENABLE_IP_PROXY = False
 
@@ -49,44 +47,17 @@ HEADLESS = False
 SAVE_LOGIN_STATE = True
 
 # ==================== CDP (Chrome DevTools Protocol) 配置 ====================
-# 是否启用 CDP 模式 - 使用用户本地的 Chrome/Edge 浏览器进行爬取，具有更好的反检测能力
-# 开启后，会自动检测并启动用户的 Chrome/Edge 浏览器，通过 CDP 协议进行控制
-# 该方式使用真实浏览器环境，包括用户的扩展、Cookie 和设置，大幅降低被风控检测的风险
-ENABLE_CDP_MODE = True
+# Whether to enable CDP mode
+ENABLE_CDP_MODE = False
 
-# CDP 调试端口，用于与浏览器通信
-# 如果端口被占用，系统会自动尝试下一个可用端口
-CDP_DEBUG_PORT = 9222
-
-# 自定义浏览器路径（可选）
-# 如果为空，系统会自动检测 Chrome/Edge 的安装路径
-# Windows 示例: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-# macOS 示例: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-CUSTOM_BROWSER_PATH = ""
-
-# 是否在 CDP 模式下启用无头模式
-# 注意：即使设置为 True，某些反检测功能在无头模式下可能无法正常工作
-CDP_HEADLESS = False
-
-# 浏览器启动超时时间（秒）
-BROWSER_LAUNCH_TIMEOUT = 60
-
-# 是否连接用户已打开的浏览器，而不是启动新的浏览器
-# 开启后，程序会连接一个已经启用了远程调试的浏览器
-# 用户需要在 Chrome 中开启远程调试：chrome://inspect/#remote-debugging
-# 或者使用命令行参数启动 Chrome：--remote-debugging-port=9222
-# 这种方式反检测效果最好，因为直接使用用户真实浏览器的所有 Cookie、扩展和浏览历史
-CDP_CONNECT_EXISTING = True
-
-# 程序结束时是否自动关闭浏览器
-# 设置为 False 可以保持浏览器运行，方便调试
-AUTO_CLOSE_BROWSER = True
+# Whether to enable crawling media mode (including image or video resources)
+ENABLE_GET_MEIDAS = True
 
 # Data saving type option configuration, supports: csv, db, json, jsonl, sqlite, excel, postgres. It is best to save to DB, with deduplication function.
 SAVE_DATA_OPTION = "jsonl"  # csv or db or json or jsonl or sqlite or excel or postgres
 
 # Data saving path, if not specified by default, it will be saved to the data folder.
-SAVE_DATA_PATH = ""
+SAVE_DATA_PATH = "H:/C#/tool/MediaCrawler/data"
 
 # Browser file configuration cached by the user's browser
 USER_DATA_DIR = "%s_user_data_dir"  # %s will be replaced by platform name
@@ -95,13 +66,10 @@ USER_DATA_DIR = "%s_user_data_dir"  # %s will be replaced by platform name
 START_PAGE = 1
 
 # Control the number of crawled videos/posts
-CRAWLER_MAX_NOTES_COUNT = 15
+CRAWLER_MAX_NOTES_COUNT = 100
 
 # Controlling the number of concurrent crawlers
 MAX_CONCURRENCY_NUM = 1
-
-# Whether to enable crawling media mode (including image or video resources), crawling media is not enabled by default
-ENABLE_GET_MEIDAS = False
 
 # Whether to enable comment crawling mode. Comment crawling is enabled by default.
 ENABLE_GET_COMMENTS = True
@@ -143,3 +111,31 @@ from .ks_config import *
 from .weibo_config import *
 from .tieba_config import *
 from .zhihu_config import *
+
+# ==================== 动态加载用户自定义配置 (user_settings.json) ====================
+def load_user_settings():
+    import json
+    import os
+    import re
+    json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "user_settings.json")
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                try:
+                    user_settings = json.loads(content)
+                except json.JSONDecodeError:
+                    # 自动修复 Windows 路径常见的单反斜杠问题
+                    # 规则：匹配反斜杠 \，且其后不是有效的 JSON 转义字符 (\\, \", \/, \b, \f, \n, \r, \t, \u)
+                    fixed_content = re.sub(r'\\(?![\\"/bfnrtu])', '/', content)
+                    user_settings = json.loads(fixed_content)
+                    print(f"[Config] 检测到 user_settings.json 格式错误（路径单反斜杠），已自动修正加载")
+                
+                for key, value in user_settings.items():
+                    # 将 JSON 中的配置注入到全局变量中
+                    globals()[key] = value
+                print(f"[Config] 已从 user_settings.json 成功加载自定义配置")
+        except Exception as e:
+            print(f"[Config] 加载 user_settings.json 失败: {e}")
+
+load_user_settings()

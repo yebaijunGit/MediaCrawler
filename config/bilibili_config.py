@@ -37,9 +37,7 @@ BILI_SPECIFIED_ID_LIST = [
 # - Full URL: "https://space.bilibili.com/434377496?spm_id_from=333.1007.0.0"
 # - UID: "20813884"
 BILI_CREATOR_ID_LIST = [
-    "https://space.bilibili.com/434377496?spm_id_from=333.1007.0.0",
-    "20813884",
-    # ........................
+    "https://space.bilibili.com/1462935462",
 ]
 
 # Specify time range
@@ -52,7 +50,7 @@ BILI_SEARCH_MODE = "normal"
 # Video definition (qn) configuration, common values:
 # 16=360p, 32=480p, 64=720p, 80=1080p, 112=1080p high bit rate, 116=1080p60, 120=4K
 # Note: Higher definition requires account/video support
-BILI_QN = 80
+BILI_QN = 120
 
 # Whether to crawl user information
 CREATOR_MODE = True
